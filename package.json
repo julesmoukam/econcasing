@@ -1,0 +1,1 @@
+{"name":"dira-practice","version":"1.0.0","private":true,"type":"module","scripts":{"check":"node --check dist/app.js && node --check dist/state.js && node --check dist/cases.js","test":"node --test tests/state.test.js"}}

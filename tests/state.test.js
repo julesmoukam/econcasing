@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initial,validate,blankDraft,mergeBackups,newAttempt} from '../dist/state.js';
+test('initial state and draft survive a JSON round trip',()=>{const s=initial();s.attempts[0].drafts[0]=blankDraft();s.attempts[0].drafts[0].text='My independent thinking';assert.deepEqual(validate(JSON.parse(JSON.stringify(s))),s);});
+test('backup merge preserves current drafts and deduplicates saved versions',()=>{const s=initial(),a=s.attempts[0];a.drafts[0]=blankDraft();a.drafts[0].text='newer draft';const incoming=structuredClone(s);incoming.attempts[0].drafts[0].text='older draft';incoming.attempts[0].versions.push({id:'v1',stage:0,date:new Date().toISOString(),draft:blankDraft()});const once=mergeBackups(s,incoming);const twice=mergeBackups(once,incoming);assert.equal(twice.attempts[0].drafts[0].text,'newer draft');assert.equal(twice.attempts[0].versions.length,1);assert.equal(s.attempts[0].versions.length,0);});
+test('new attempts are imported with drafts intact',()=>{const s=initial(),incoming=initial();incoming.attempts[0].drafts[2]=blankDraft();incoming.attempts[0].drafts[2].text='interpretation';const result=mergeBackups(s,incoming);assert.equal(result.attempts.length,2);assert.equal(result.attempts[1].drafts[2].text,'interpretation');});
+test('malformed or incompatible backups are rejected',()=>{for(const value of [null,{}, {schema:2}, {...initial(),current:'missing'}])assert.throws(()=>validate(value));const s=initial();s.attempts[0].drafts[0]={text:5};assert.throws(()=>validate(s));});
+test('saved version is detached from later edits',()=>{const d=blankDraft();d.text='first';const version=structuredClone(d);d.text='second';assert.equal(version.text,'first');});
